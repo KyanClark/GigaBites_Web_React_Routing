@@ -1,0 +1,118 @@
+.confirmation-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.2s ease-out;
+}
+
+.confirmation-dialog {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  transform: translateY(0);
+  animation: slideUp 0.3s ease-out;
+}
+
+.confirmation-dialog-title {
+  margin: 0 0 1rem 0;
+  color: #1e293b;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.confirmation-dialog-message {
+  margin: 0 0 1.5rem 0;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.confirmation-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.confirmation-dialog-button {
+  padding: 0.6rem 1.25rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+}
+
+.confirmation-dialog-button.confirm {
+  background-color: #ef4444;
+  color: white;
+}
+
+.confirmation-dialog-button.confirm:hover {
+  background-color: #dc2626;
+  transform: translateY(-1px);
+}
+
+.confirmation-dialog-button.confirm:active {
+  transform: translateY(0);
+}
+
+.confirmation-dialog-button.cancel {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.confirmation-dialog-button.cancel:hover {
+  background-color: #e2e8f0;
+}
+
+/* Dark mode support */
+.dark .confirmation-dialog {
+  background: #1e293b;
+  color: #f8fafc;
+}
+
+.dark .confirmation-dialog-title {
+  color: #f8fafc;
+}
+
+.dark .confirmation-dialog-message {
+  color: #cbd5e1;
+}
+
+.dark .confirmation-dialog-button.cancel {
+  background-color: #334155;
+  color: #e2e8f0;
+}
+
+.dark .confirmation-dialog-button.cancel:hover {
+  background-color: #475569;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

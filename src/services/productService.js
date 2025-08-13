@@ -162,28 +162,29 @@ export const addProduct = async (productData) => {
 // Update an existing product in Firestore
 export const updateProduct = async (productId, productData) => {
   try {
-    const productRef = doc(db, PRODUCTS_COLLECTION, productId)
+    let productRef = doc(db, PRODUCTS_COLLECTION, productId);
+    let docSnap = await getDoc(productRef);
+    let productExists = docSnap.exists();
     
-    // Check if document exists
-    const docSnap = await getDoc(productRef)
-    
-    if (!docSnap.exists()) {
-      // Try to find product by name if not found by ID
-      const productsCollection = collection(db, PRODUCTS_COLLECTION)
+    // If product not found by ID, try to find by name
+    if (!productExists) {
+      console.warn(`Product with ID ${productId} not found, trying to find by name`);
+      const productsCollection = collection(db, PRODUCTS_COLLECTION);
       const q = query(
         productsCollection,
         where('name', '==', productData.name.trim())
-      )
-      const querySnapshot = await getDocs(q)
+      );
       
-      if (querySnapshot.empty) {
-        throw new Error('Product not found')
-      }
+      const querySnapshot = await getDocs(q);
       
-      // Update the reference to the found product
-      const existingProduct = querySnapshot.docs[0]
-      if (existingProduct.id !== productId) {
-        throw new Error('A different product with this name already exists')
+      if (!querySnapshot.empty) {
+        // Use the first matching product
+        const existingProduct = querySnapshot.docs[0];
+        console.log(`Found product by name: ${existingProduct.id} - ${existingProduct.data().name}`);
+        productRef = doc(db, PRODUCTS_COLLECTION, existingProduct.id);
+        productId = existingProduct.id; // Update the productId for the return value
+      } else {
+        throw new Error('Product not found in database');
       }
     }
     
@@ -194,20 +195,31 @@ export const updateProduct = async (productId, productData) => {
       price: parseFloat(productData.price),
       stock: parseInt(productData.stock) || 0,
       updatedAt: new Date()
+    };
+    
+    // Only update image if it's a new one (not a URL and not empty)
+    if (productData.image && !productData.image.startsWith('http') && !productData.image.startsWith('data:image')) {
+      updateData.image = productData.image;
+    } else if (productData.image === '' && docSnap.exists()) {
+      // If image is being removed, keep the existing one
+      updateData.image = docSnap.data().image || '';
     }
     
-    // Only update image if it's a new one (starts with http)
-    if (productData.image && !productData.image.startsWith('http')) {
-      updateData.image = productData.image
-    }
+    console.log('Updating product with data:', { productId, updateData });
     
-    // Update the existing document
-    await updateDoc(productRef, updateData)
+    // Update the document
+    await updateDoc(productRef, updateData);
+    
+    // Get the updated document to return
+    const updatedDoc = await getDoc(productRef);
+    if (!updatedDoc.exists()) {
+      throw new Error('Failed to verify product update');
+    }
     
     return {
       id: productId,
-      ...updateData
-    }
+      ...updatedDoc.data()
+    };
   } catch (error) {
     console.error('Error updating product:', error)
     throw error
