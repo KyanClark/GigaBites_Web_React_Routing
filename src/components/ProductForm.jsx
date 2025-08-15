@@ -1,7 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage'
-import { storage } from '../firebase'
-import { uploadProductImage } from '../services/productService'
 import './ProductForm.css'
 
 const ProductForm = ({ product, onClose, onSubmit }) => {
@@ -17,26 +14,63 @@ const ProductForm = ({ product, onClose, onSubmit }) => {
   const [imageFile, setImageFile] = useState(null)
   const [imagePreview, setImagePreview] = useState('')
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [isFormInitialized, setIsFormInitialized] = useState(false)
 
   useEffect(() => {
     if (product) {
-      setFormData({
+      console.log('🔍 Initializing form with product:', product);
+      console.log('🔍 Product data types:', {
+        name: typeof product.name,
+        description: typeof product.description,
+        price: typeof product.price,
+        stock: typeof product.stock,
+        image: typeof product.image
+      });
+      const initialData = {
         name: product.name || '',
         description: product.description || '',
         price: product.price || '',
         image: product.image || '',
         stock: product.stock || ''
-      })
-      setImagePreview(product.image || '')
+      };
+      console.log('🔍 Setting form data:', initialData);
+      console.log('🔍 Initial data types:', {
+        name: typeof initialData.name,
+        description: typeof initialData.description,
+        price: typeof initialData.price,
+        stock: typeof initialData.stock,
+        image: typeof initialData.image
+      });
+      setFormData(initialData);
+      setImagePreview(product.image || '');
+      setIsFormInitialized(true);
+    } else {
+      // Reset form when adding new product
+      console.log('🔍 Resetting form for new product');
+      setFormData({
+        name: '',
+        description: '',
+        price: '',
+        image: '',
+        stock: ''
+      });
+      setImagePreview('');
+      setImageFile(null);
+      setIsFormInitialized(true);
     }
   }, [product])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
+    console.log('🔍 Input change:', { name, value, currentFormData: formData });
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [name]: value
+      };
+      console.log('🔍 Updated form data:', newData);
+      return newData;
+    });
     // Clear error when user starts typing
     if (errors[name]) {
       setErrors(prev => ({
@@ -63,50 +97,45 @@ const ProductForm = ({ product, onClose, onSubmit }) => {
       
       setImageFile(file)
       
-      // Create preview
+      // Create preview and update form data
       const reader = new FileReader()
       reader.onload = (e) => {
-        setImagePreview(e.target.result)
+        const dataUrl = e.target.result
+        setImagePreview(dataUrl)
+        setFormData(prev => ({ ...prev, image: dataUrl }))
       }
       reader.readAsDataURL(file)
     }
   }
 
-  const uploadImage = async () => {
-    if (!imageFile) return formData.image
-    setUploadingImage(true)
-    try {
-      const downloadURL = await uploadProductImage(imageFile)
-      return downloadURL
-    } catch (error) {
-      console.error('Error uploading image:', error)
-      throw error // Re-throw to be caught in handleSubmit
-    } finally {
-      setUploadingImage(false)
-    }
-  }
-
-
+  // Image processing is now handled directly in handleImageChange
 
   const validateForm = () => {
     const newErrors = {}
+    
+    console.log('🔍 Validating form data:', formData)
 
-    if (!formData.name.trim()) {
+    if (!formData.name || !formData.name.trim()) {
       newErrors.name = 'Product name is required'
+      console.log('❌ Name validation failed:', { name: formData.name, trimmed: formData.name?.trim() })
     }
 
-    if (!formData.description.trim()) {
+    if (!formData.description || !formData.description.trim()) {
       newErrors.description = 'Description is required'
+      console.log('❌ Description validation failed:', { description: formData.description, trimmed: formData.description?.trim() })
     }
 
-    if (!formData.price || isNaN(formData.price) || parseFloat(formData.price) <= 0) {
+    if (!formData.price || formData.price === '' || isNaN(parseFloat(formData.price)) || parseFloat(formData.price) <= 0) {
       newErrors.price = 'Valid price is required'
+      console.log('❌ Price validation failed:', { price: formData.price, parsed: parseFloat(formData.price), isNaN: isNaN(parseFloat(formData.price)) })
     }
 
-    if (!formData.stock || isNaN(formData.stock) || parseInt(formData.stock) < 0) {
+    if (!formData.stock || formData.stock === '' || isNaN(parseInt(formData.stock)) || parseInt(formData.stock) < 0) {
       newErrors.stock = 'Valid stock quantity is required'
+      console.log('❌ Stock validation failed:', { stock: formData.stock, parsed: parseInt(formData.stock), isNaN: isNaN(parseInt(formData.stock)) })
     }
 
+    console.log('🔍 Validation errors:', newErrors)
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -114,32 +143,115 @@ const ProductForm = ({ product, onClose, onSubmit }) => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    if (!validateForm()) {
-      console.log('❌ Form validation failed:', errors)
-      return
+    console.log('🔍 Form data before validation:', formData)
+    console.log('🔍 Form initialization status:', isFormInitialized)
+    
+    // Check if form is properly initialized
+    if (!isFormInitialized) {
+      console.error('❌ Form not yet initialized');
+      alert('Form is still loading. Please wait a moment and try again.');
+      return;
     }
+    
+    // Small delay to ensure state updates are processed
+    await new Promise(resolve => setTimeout(resolve, 100))
+      
+      console.log('🔍 Form initialization check:', {
+        isFormInitialized,
+        hasName: !!formData.name,
+        hasDescription: !!formData.description,
+        hasPrice: !!formData.price,
+        hasStock: !!formData.stock,
+        formData
+      })
+      
+      // More detailed validation
+      // Use the validateForm function instead of duplicate validation
+      if (!validateForm()) {
+        console.log('❌ Form validation failed:', errors)
+        return
+      }
 
     setIsSubmitting(true)
 
     try {
-      // Upload image if a new one was selected
-      let imageUrl = formData.image
-      if (imageFile) {
-        imageUrl = await uploadImage()
-      }
-      
+      // Image is already processed and stored in formData.image
       const submitData = {
         name: formData.name.trim(),
         description: formData.description.trim(),
         price: parseFloat(formData.price),
         stock: parseInt(formData.stock) || 0,
-        image: imageUrl
+        image: formData.image || ''
+      }
+      
+      console.log('🔍 Form data before submission:', formData);
+      console.log('🔍 Submit data after processing:', submitData);
+      console.log('🔍 Data types:', {
+        name: typeof submitData.name,
+        description: typeof submitData.description,
+        price: typeof submitData.price,
+        stock: typeof submitData.stock,
+        image: typeof submitData.image
+      });
+      
+      // Ensure numeric values are valid
+      if (isNaN(submitData.price) || submitData.price <= 0) {
+        console.error('❌ Invalid price after parsing:', submitData.price);
+        alert('Price must be a valid positive number');
+        return;
+      }
+      
+      if (isNaN(submitData.stock) || submitData.stock < 0) {
+        console.error('❌ Invalid stock after parsing:', submitData.stock);
+        alert('Stock must be a valid non-negative number');
+        return;
+      }
+      
+      console.log('🔍 Submitting product data:', submitData)
+      console.log('🔍 Form data state at submission:', formData)
+      console.log('🔍 Parsed values:', {
+        name: submitData.name,
+        description: submitData.description,
+        price: submitData.price,
+        stock: submitData.stock,
+        priceType: typeof submitData.price,
+        stockType: typeof submitData.stock
+      })
+      console.log('🔍 Raw form values:', {
+        name: formData.name,
+        description: formData.description,
+        price: formData.price,
+        stock: formData.stock
+      })
+      
+      // Validate that we have the required data
+      if (!submitData.name || !submitData.description || isNaN(submitData.price) || isNaN(submitData.stock)) {
+        console.error('❌ Invalid submit data:', submitData);
+        throw new Error('Form data is invalid. Please check all required fields.');
       }
       
       // If editing, pass the product ID as first argument
       if (product && product.id) {
+        console.log('🔍 Submitting update with ID:', product.id);
+        console.log('🔍 Submit data for update:', submitData);
+        console.log('🔍 Final data types before submission:', {
+          name: typeof submitData.name,
+          description: typeof submitData.description,
+          price: typeof submitData.price,
+          stock: typeof submitData.stock,
+          image: typeof submitData.image
+        });
+        
+        // Ensure all required fields are present and valid
+        if (!submitData.name || !submitData.description || !submitData.price || !submitData.stock) {
+          console.error('❌ Final validation failed:', submitData);
+          throw new Error('All required fields must be filled');
+        }
+        
+        console.log('🔍 About to call onSubmit with:', { id: product.id, data: submitData });
         await onSubmit(product.id, submitData)
       } else {
+        console.log('🔍 Submitting new product:', submitData);
         await onSubmit(submitData)
       }
       
@@ -194,7 +306,7 @@ const ProductForm = ({ product, onClose, onSubmit }) => {
           </button>
         </div>
 
-        <form className="product-form" onSubmit={handleSubmit}>
+        <form className="product-form" onSubmit={handleSubmit} noValidate>
           <div className="form-content">
             <div className="form-section">
               <h3>Basic Information</h3>
@@ -243,9 +355,23 @@ const ProductForm = ({ product, onClose, onSubmit }) => {
                   />
                   {errors.price && <span className="error-message">{errors.price}</span>}
                 </div>
+                
+                <div className="form-group">
+                  <label htmlFor="stock">Stock Quantity *</label>
+                  <input
+                    type="number"
+                    id="stock"
+                    name="stock"
+                    value={formData.stock}
+                    onChange={handleInputChange}
+                    className={errors.stock ? 'error' : ''}
+                    placeholder="0"
+                    min="0"
+                    step="1"
+                  />
+                  {errors.stock && <span className="error-message">{errors.stock}</span>}
+                </div>
               </div>
-
-
 
               <div className="form-group">
                 <label htmlFor="image">Product Image</label>
@@ -279,53 +405,27 @@ const ProductForm = ({ product, onClose, onSubmit }) => {
                         <polyline points="7,10 12,15 17,10"></polyline>
                         <line x1="12" y1="15" x2="12" y2="3"></line>
                       </svg>
-                      {uploadingImage ? 'Uploading...' : 'Upload Image'}
+                      {uploadingImage ? 'Processing...' : 'Select Image'}
                     </label>
                     
-                    <div className="url-input-section">
-                      <span>Or enter image URL:</span>
-                      <input
-                        type="url"
-                        name="image"
-                        value={formData.image}
-                        onChange={(e) => {
-                          handleInputChange(e)
-                          setImagePreview(e.target.value)
+                    {/* URL input removed - image upload is sufficient */}
+                    
+                    {/* Show clear button if image is selected */}
+                    {imageFile && (
+                      <button
+                        type="button"
+                        className="clear-image-btn"
+                        onClick={() => {
+                          setImageFile(null)
+                          setImagePreview('')
+                          setFormData(prev => ({ ...prev, image: '' }))
                         }}
-                        placeholder="https://example.com/image.jpg"
-                      />
-                    </div>
+                      >
+                        Clear Image
+                      </button>
+                    )}
                   </div>
                 </div>
-              </div>
-            </div>
-
-            <div className="form-section">
-              <div className="form-group stock-input-group">
-                <label htmlFor="stock">Stock Quantity *</label>
-                <div className="stock-input-container">
-                  <input
-                    type="number"
-                    id="stock"
-                    name="stock"
-                    value={formData.stock}
-                    onChange={handleInputChange}
-                    className={`stock-input ${errors.stock ? 'error' : ''}`}
-                    placeholder="0"
-                    min="0"
-                    step="1"
-                  />
-                  <div className="stock-preview">
-                    <span className="stock-preview-label">Stock:</span>
-                    <span className={`stock-preview-number ${
-                      formData.stock === 0 || formData.stock === '' ? 'out-of-stock' : 
-                      parseInt(formData.stock) < 5 ? 'low-stock' : 'in-stock'
-                    }`}>
-                      {formData.stock || '0'}
-                    </span>
-                  </div>
-                </div>
-                {errors.stock && <span className="error-message">{errors.stock}</span>}
               </div>
             </div>
           </div>
@@ -334,11 +434,16 @@ const ProductForm = ({ product, onClose, onSubmit }) => {
             <button type="button" onClick={onClose} className="cancel-btn">
               Cancel
             </button>
-            <button type="submit" className="submit-btn" disabled={isSubmitting}>
+            <button type="submit" className="submit-btn" disabled={isSubmitting || !isFormInitialized}>
               {isSubmitting ? (
                 <>
                   <div className="spinner"></div>
                   {product ? 'Updating...' : 'Adding...'}
+                </>
+              ) : !isFormInitialized ? (
+                <>
+                  <div className="spinner"></div>
+                  Loading...
                 </>
               ) : (
                 <>

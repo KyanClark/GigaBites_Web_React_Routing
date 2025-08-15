@@ -98,6 +98,11 @@
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
+}
+
+/* Recovery button styles */
+
+.nav-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -115,6 +120,47 @@
   width: 1.25rem;
   height: 1.25rem;
   stroke-width: 2;
+}
+
+.nav-btn.refresh-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+
+.nav-btn.generate-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(240, 147, 251, 0.4);
+}
+
+.nav-btn.generate-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.nav-btn.test-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+}
+
+.nav-btn.test-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.nav-btn.test-btn svg {
+  width: 20px;
+  height: 20px;
 }
 
 /* Cart Badge */

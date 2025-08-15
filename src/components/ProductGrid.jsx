@@ -8,7 +8,6 @@ const ProductGrid = ({
   hasProducts,
   sortBy,
   onSortChange,
-  onAddToCart = () => {}, 
   onEditProduct = () => {}, 
   onDeleteProduct = () => {}, 
   loading = false
@@ -97,7 +96,6 @@ const ProductGrid = ({
                 key={product.id}
                 product={product}
                 onProductClick={onProductClick}
-                onAddToCart={onAddToCart}
                 onEditProduct={onEditProduct}
                 onDeleteProduct={onDeleteProduct}
               />
@@ -112,7 +110,6 @@ const ProductGrid = ({
 const ProductCard = ({ 
   product = {}, 
   onProductClick = () => {}, 
-  onAddToCart = () => {}, 
   onEditProduct = () => {}, 
   onDeleteProduct = () => {} 
 }) => {
@@ -139,16 +136,14 @@ const ProductCard = ({
     onEditProduct(safeProduct)
   }
 
-  const handleAddToCart = (e) => {
-    e.stopPropagation()
-    onAddToCart(safeProduct)
-  }
-
   // Helper function to get image path
   const getImagePath = (imagePath) => {
     if (!imagePath) return 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop'
     if (imagePath.startsWith('assets/')) {
       return `/${imagePath}`
+    }
+    if (imagePath.startsWith('data:image/')) {
+      return imagePath // Return data URL as-is
     }
     return imagePath
   }
@@ -163,34 +158,9 @@ const ProductCard = ({
             e.target.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=300&fit=crop'
           }}
         />
-        <div className="card-overlay">
-          <button className="overlay-btn" onClick={handleAddToCart} title="Add to Cart">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <circle cx="9" cy="21" r="1"></circle>
-              <circle cx="20" cy="21" r="1"></circle>
-              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
-            </svg>
-          </button>
-        </div>
-      </div>
-      
-      <div className="card-content">
-        <h3 className="card-title">{safeProduct.name}</h3>
-        <p className="card-description">{safeProduct.description}</p>
-        <div className="card-price">${safeProduct.price}</div>
-        
-        {/* Stock status */}
-        <div className="stock-info">
-          <div className="stock-display">
-            <span className="stock-label">Stock:</span>
-            <span className={`stock-number ${
-              safeProduct.stock === 0 ? 'out-of-stock' : 
-              safeProduct.stock < 5 ? 'low-stock' : 'in-stock'
-            }`}>
-              {safeProduct.stock}
-            </span>
-          </div>
-          <span className={`stock-badge ${
+        {/* Stock status overlay on top left corner */}
+        <div className="stock-overlay">
+          <span className={`stock-status ${
             safeProduct.stock === 0 ? 'out-of-stock' : 
             safeProduct.stock < 5 ? 'low-stock' : 'in-stock'
           }`}>
@@ -198,15 +168,14 @@ const ProductCard = ({
              safeProduct.stock < 5 ? `${safeProduct.stock} left` : 'In Stock'}
           </span>
         </div>
+      </div>
+      
+      <div className="card-content">
+        <h3 className="card-title">{safeProduct.name}</h3>
+        <p className="card-description">{safeProduct.description}</p>
+        <div className="card-price">${safeProduct.price}</div>
 
         <div className="card-actions">
-          <button 
-            className={`action-btn primary ${safeProduct.stock === 0 ? 'disabled' : ''}`}
-            onClick={handleAddToCart}
-            disabled={safeProduct.stock === 0}
-          >
-            {safeProduct.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
-          </button>
           <div className="admin-actions">
             <button className="action-btn icon-btn edit" onClick={handleEdit} title="Edit Product">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -221,6 +190,17 @@ const ProductCard = ({
               </svg>
             </button>
           </div>
+        </div>
+        
+        {/* Stock quantity display */}
+        <div className="stock-quantity">
+          <span className="stock-label">Stock:</span>
+          <span className={`stock-number ${
+            safeProduct.stock === 0 ? 'out-of-stock' : 
+            safeProduct.stock < 5 ? 'low-stock' : 'in-stock'
+          }`}>
+            {safeProduct.stock}
+          </span>
         </div>
       </div>
     </div>

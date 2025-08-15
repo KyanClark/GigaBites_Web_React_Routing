@@ -2,18 +2,21 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, where } from 'firebase/firestore'
 import { firestore } from '../../firebase'
 
-// Async thunks for Firestore cart operations
+// Async thunks for Firestore cart operations - Updated to use session-based approach
 export const fetchCartItems = createAsyncThunk(
   'cart/fetchCartItems',
-  async (userId = 'guest', { rejectWithValue }) => {
+  async (_, { rejectWithValue }) => {
     try {
-      const q = query(collection(firestore, 'cart'), where('userId', '==', userId))
+      // Use the carts collection with session-based approach
+      const sessionId = sessionStorage.getItem('cartSessionId') || 'guest'
+      const q = query(collection(firestore, 'carts'), where('sessionId', '==', sessionId))
       const querySnapshot = await getDocs(q)
-      const cartItems = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }))
-      return cartItems
+      
+      if (!querySnapshot.empty) {
+        const cartDoc = querySnapshot.docs[0]
+        return cartDoc.data().items || []
+      }
+      return []
     } catch (error) {
       return rejectWithValue(error.message)
     }
@@ -22,19 +25,10 @@ export const fetchCartItems = createAsyncThunk(
 
 export const addToCartFirestore = createAsyncThunk(
   'cart/addToCartFirestore',
-  async ({ product, userId = 'guest' }, { rejectWithValue }) => {
+  async ({ product, quantity = 1 }, { rejectWithValue }) => {
     try {
-      const cartItem = {
-        productId: product.id,
-        name: product.name,
-        price: product.price,
-        image: product.image,
-        quantity: 1,
-        userId,
-        addedAt: new Date()
-      }
-      const docRef = await addDoc(collection(firestore, 'cart'), cartItem)
-      return { id: docRef.id, ...cartItem }
+      // This will be handled by the cartService, so we just return success
+      return { success: true }
     } catch (error) {
       return rejectWithValue(error.message)
     }
@@ -45,11 +39,8 @@ export const updateCartItemFirestore = createAsyncThunk(
   'cart/updateCartItemFirestore',
   async ({ id, quantity }, { rejectWithValue }) => {
     try {
-      await updateDoc(doc(firestore, 'cart', id), {
-        quantity,
-        updatedAt: new Date()
-      })
-      return { id, quantity }
+      // This will be handled by the cartService, so we just return success
+      return { success: true }
     } catch (error) {
       return rejectWithValue(error.message)
     }
@@ -60,8 +51,8 @@ export const removeFromCartFirestore = createAsyncThunk(
   'cart/removeFromCartFirestore',
   async (cartItemId, { rejectWithValue }) => {
     try {
-      await deleteDoc(doc(firestore, 'cart', cartItemId))
-      return cartItemId
+      // This will be handled by the cartService, so we just return success
+      return { success: true }
     } catch (error) {
       return rejectWithValue(error.message)
     }
@@ -88,31 +79,54 @@ const cartSlice = createSlice({
     },
     // Local cart operations (for immediate UI feedback)
     addToCartLocal: (state, action) => {
-      const { product } = action.payload
-      const existingItem = state.items.find(item => item.productId === product.id)
+      const { product, quantity = 1 } = action.payload
+      console.log('Adding to cart local:', { product, quantity, currentItems: state.items })
+      
+      // Check for existing item by both productId and id
+      const existingItem = state.items.find(item => 
+        item.productId === product.id || item.id === product.id
+      )
       
       if (existingItem) {
-        existingItem.quantity += 1
+        console.log('Updating existing item:', existingItem)
+        existingItem.quantity += quantity
       } else {
-        state.items.push({
-          id: `temp-${Date.now()}`,
+        console.log('Adding new item to cart')
+        const newItem = {
+          id: product.id, // Use product.id as the item id
           productId: product.id,
           name: product.name,
           price: product.price,
           image: product.image,
-          quantity: 1
-        })
+          quantity: quantity
+        }
+        state.items.push(newItem)
+        console.log('New cart items:', state.items)
       }
     },
     updateCartItemLocal: (state, action) => {
       const { id, quantity } = action.payload
-      const item = state.items.find(item => item.id === id)
+      console.log('Updating cart item local:', { id, quantity, currentItems: state.items })
+      
+      // Find item by either id or productId
+      const item = state.items.find(item => item.id === id || item.productId === id)
       if (item) {
+        console.log('Found item to update:', item)
         item.quantity = quantity
+      } else {
+        console.log('Item not found for update:', id)
       }
     },
     removeFromCartLocal: (state, action) => {
-      state.items = state.items.filter(item => item.id !== action.payload)
+      const productId = action.payload
+      console.log('Removing from cart local:', { productId, currentItems: state.items })
+      
+      // Remove by either productId or id
+      state.items = state.items.filter(item => item.productId !== productId && item.id !== productId)
+      console.log('Items after removal:', state.items)
+    },
+    initializeCart: (state, action) => {
+      state.items = action.payload || []
     }
   },
   extraReducers: (builder) => {
@@ -171,7 +185,8 @@ export const {
   clearError, 
   addToCartLocal, 
   updateCartItemLocal, 
-  removeFromCartLocal 
+  removeFromCartLocal,
+  initializeCart
 } = cartSlice.actions
 
 // Selectors

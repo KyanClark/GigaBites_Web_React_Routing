@@ -250,6 +250,72 @@
   transform: scale(1.05);
 }
 
+/* Stock Overlay */
+.stock-overlay {
+  position: absolute;
+  top: 20px;
+  left: 18px;
+  z-index: 2;
+}
+
+.stock-status {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(4px);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.stock-status.in-stock {
+  color: #059669;
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.stock-status.low-stock {
+  color: #d97706;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.stock-status.out-of-stock {
+  color: #dc2626;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Stock Quantity Display (below buttons) */
+.stock-quantity {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.stock-label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.stock-number {
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  min-width: 2.5rem;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
 .card-overlay {
   position: absolute;
   inset: 0;

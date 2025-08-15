@@ -2,13 +2,16 @@ import React from 'react'
 import './Header.css'
 
 const Header = ({ 
-  cartItemCount, 
+  cartItemCount = 0, 
   onCartClick, 
-  onHomeClick,
-  searchTerm, 
+  onHomeClick, 
+  onGenerateSamples,
+  onTestCart,
+  onRecoverCarts,
+  searchTerm = '', 
   onSearchChange, 
-  darkMode, 
-  onDarkModeToggle 
+  darkMode = false, 
+  onDarkModeToggle
 }) => {
   return (
     <header className="header">
@@ -28,6 +31,8 @@ const Header = ({
             </svg>
             <input
               type="text"
+              id="searchProducts"
+              name="searchProducts"
               placeholder="Search products..."
               value={searchTerm}
               onChange={(e) => onSearchChange(e.target.value)}
@@ -38,6 +43,8 @@ const Header = ({
 
         {/* Navigation Actions */}
         <div className="nav-actions">
+
+
           {/* Dark Mode Toggle */}
           <button 
             className="nav-btn dark-mode-toggle"

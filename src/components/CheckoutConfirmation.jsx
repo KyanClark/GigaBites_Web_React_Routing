@@ -1,13 +1,38 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import './CheckoutConfirmation.css'
 
-const CheckoutConfirmation = ({ orderDetails, onClose }) => {
-  const { items, subtotal, tax, shipping, total, orderNumber, timestamp } = orderDetails
+const CheckoutConfirmation = ({ orderData, onClose }) => {
+  // Destructure from orderData instead of orderDetails
+  const { items, total, orderNumber, customerInfo } = orderData
+
+  // Handle escape key to close modal
+  useEffect(() => {
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        onClose()
+      }
+    }
+
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [onClose])
+
+  // Calculate subtotal, tax, and shipping from the items
+  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+  const tax = subtotal * 0.1 // 10% tax
+  const shipping = subtotal > 0 ? 10 : 0 // $10 flat rate shipping
 
   return (
-    <div className="checkout-confirmation">
-      <div className="confirmation-container">
+    <div className="checkout-confirmation" onClick={onClose}>
+      <div className="confirmation-container" onClick={(e) => e.stopPropagation()}>
+        {/* Close Button */}
+        <button className="modal-close-btn" onClick={onClose} aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+        
         <div className="confirmation-header">
           <div className="success-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -25,11 +50,15 @@ const CheckoutConfirmation = ({ orderDetails, onClose }) => {
           <div className="order-info">
             <div className="order-number">
               <span className="label">Order Number:</span>
-              <span className="value">#{orderNumber}</span>
+              <span className="value">{orderNumber}</span>
             </div>
             <div className="order-date">
               <span className="label">Order Date:</span>
-              <span className="value">{new Date(timestamp).toLocaleDateString()}</span>
+              <span className="value">{customerInfo?.orderDate || new Date().toLocaleDateString()}</span>
+            </div>
+            <div className="estimated-delivery">
+              <span className="label">Estimated Delivery:</span>
+              <span className="value">{customerInfo?.estimatedDelivery || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()}</span>
             </div>
           </div>
 
@@ -40,7 +69,8 @@ const CheckoutConfirmation = ({ orderDetails, onClose }) => {
                 <div key={item.id} className="order-item">
                   <div className="item-image">
                     <img 
-                      src={item.image?.startsWith('assets/') ? `/${item.image}` : item.image} 
+                      src={item.image?.startsWith('assets/') ? `/${item.image}` : 
+                           item.image?.startsWith('data:image/') ? item.image : item.image} 
                       alt={item.name}
                       onError={(e) => {
                         e.target.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=80&h=80&fit=crop'
@@ -65,7 +95,7 @@ const CheckoutConfirmation = ({ orderDetails, onClose }) => {
               <span>${subtotal.toFixed(2)}</span>
             </div>
             <div className="total-row">
-              <span>Tax:</span>
+              <span>Tax (10%):</span>
               <span>${tax.toFixed(2)}</span>
             </div>
             <div className="total-row">

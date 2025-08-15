@@ -307,21 +307,23 @@
   stroke-width: 2;
 }
 
-.url-input-section {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+.clear-image-btn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.3s ease;
+  margin-top: 8px;
 }
 
-.url-input-section span {
-  font-size: 0.85rem;
-  color: #64748b;
-  font-weight: 500;
+.clear-image-btn:hover {
+  background: #dc2626;
 }
 
-.url-input-section input {
-  margin-bottom: 0;
-}
+/* URL input section removed - no longer needed */
 
 /* Features Input */
 .features-input {

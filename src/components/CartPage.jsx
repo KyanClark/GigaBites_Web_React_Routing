@@ -4,6 +4,7 @@ import './CartPage.css'
 
 const CartPage = ({ 
   items = [], 
+  onUpdateQuantity = () => {},
   onRemoveItem = () => {},
   onCheckout = () => {}
 }) => {
@@ -68,6 +69,7 @@ const CartPage = ({
                 <CartItem
                   key={item.id}
                   item={item}
+                  onUpdateQuantity={onUpdateQuantity}
                   onRemoveItem={onRemoveItem}
                 />
               ))}
@@ -129,27 +131,34 @@ const CartPage = ({
   )
 }
 
-const CartItem = ({ item, onRemoveItem }) => {
+const CartItem = ({ item, onUpdateQuantity, onRemoveItem }) => {
   const [isRemoving, setIsRemoving] = useState(false);
 
   const handleRemoveClick = async () => {
     if (isRemoving) return;
     setIsRemoving(true);
     try {
-      await onRemoveItem(item.id);
+      await onRemoveItem(item);
     } finally {
       setIsRemoving(false);
     }
   };
+
+  const handleQuantityChange = (newQuantity) => {
+    if (newQuantity > 0) {
+      onUpdateQuantity(item.id, newQuantity);
+    }
+  };
+
   return (
     <div className="cart-item">
       <div className="item-info">
         <div className="item-image">
           <img 
-            src={item.image || '/api/placeholder/100/100'} 
+            src={item.image || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100&h=100&fit=crop'} 
             alt={item.name}
             onError={(e) => {
-              e.target.src = '/api/placeholder/100/100'
+              e.target.src = 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100&h=100&fit=crop'
             }}
           />
         </div>

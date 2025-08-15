@@ -13,8 +13,7 @@ import {
   increment,
   where
 } from 'firebase/firestore'
-import { db, storage } from '../firebase'
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
+import { db } from '../firebase'
 
 const PRODUCTS_COLLECTION = 'products'
 
@@ -95,35 +94,53 @@ export const subscribeToProducts = (onSuccess, onError) => {
   }
 }
 
-// Upload image to Firebase Storage
-export const uploadProductImage = async (file) => {
-  try {
-    // Check if file exists and is an image
-    if (!file || !file.type.startsWith('image/')) {
-      throw new Error('Please select a valid image file')
-    }
-
-    // Create a unique filename
-    const timestamp = Date.now()
-    const fileExt = file.name.split('.').pop()
-    const filename = `products/${timestamp}.${fileExt}`
-    const storageRef = ref(storage, filename)
-    
-    // Upload the file
-    await uploadBytes(storageRef, file)
-    
-    // Get the download URL
-    const downloadURL = await getDownloadURL(storageRef)
-    return downloadURL
-  } catch (error) {
-    console.error('Error uploading image:', error)
-    throw new Error('Failed to upload image. Please try again.')
-  }
-}
+// Note: Image upload functionality has been moved to local storage
+// Images are now stored as data URLs in the product data
 
 // Add a new product to Firestore
 export const addProduct = async (productData) => {
   try {
+    console.log('addProduct called with:', productData);
+    
+    // Validate input data
+    if (!productData || typeof productData !== 'object') {
+      throw new Error('Invalid product data provided')
+    }
+    
+    // Check if productData has the required properties
+    if (productData.name === undefined || productData.name === null) {
+      throw new Error('Product name is missing')
+    }
+    
+    if (productData.description === undefined || productData.description === null) {
+      throw new Error('Product description is missing')
+    }
+    
+    if (productData.price === undefined || productData.price === null) {
+      throw new Error('Product price is missing')
+    }
+    
+    if (productData.stock === undefined || productData.stock === null) {
+      throw new Error('Product stock is missing')
+    }
+    
+    // Validate data types and values
+    if (typeof productData.name !== 'string' || !productData.name.trim()) {
+      throw new Error('Product name is required and must be a non-empty string')
+    }
+    
+    if (typeof productData.description !== 'string' || !productData.description.trim()) {
+      throw new Error('Product description is required and must be a non-empty string')
+    }
+    
+    if (isNaN(parseFloat(productData.price)) || parseFloat(productData.price) <= 0) {
+      throw new Error('Valid product price is required (must be a positive number)')
+    }
+    
+    if (isNaN(parseInt(productData.stock)) || parseInt(productData.stock) < 0) {
+      throw new Error('Valid stock quantity is required (must be a non-negative integer)')
+    }
+    
     const productsCollection = collection(db, PRODUCTS_COLLECTION)
     
     // Check if product with same name already exists
@@ -162,30 +179,53 @@ export const addProduct = async (productData) => {
 // Update an existing product in Firestore
 export const updateProduct = async (productId, productData) => {
   try {
-    let productRef = doc(db, PRODUCTS_COLLECTION, productId);
-    let docSnap = await getDoc(productRef);
-    let productExists = docSnap.exists();
+    console.log('updateProduct called with:', { productId, productData });
     
-    // If product not found by ID, try to find by name
-    if (!productExists) {
-      console.warn(`Product with ID ${productId} not found, trying to find by name`);
-      const productsCollection = collection(db, PRODUCTS_COLLECTION);
-      const q = query(
-        productsCollection,
-        where('name', '==', productData.name.trim())
-      );
-      
-      const querySnapshot = await getDocs(q);
-      
-      if (!querySnapshot.empty) {
-        // Use the first matching product
-        const existingProduct = querySnapshot.docs[0];
-        console.log(`Found product by name: ${existingProduct.id} - ${existingProduct.data().name}`);
-        productRef = doc(db, PRODUCTS_COLLECTION, existingProduct.id);
-        productId = existingProduct.id; // Update the productId for the return value
-      } else {
-        throw new Error('Product not found in database');
-      }
+    // Validate input data
+    if (!productData || typeof productData !== 'object') {
+      throw new Error('Invalid product data provided')
+    }
+    
+    // Check if productData has the required properties
+    if (productData.name === undefined || productData.name === null) {
+      throw new Error('Product name is missing')
+    }
+    
+    if (productData.description === undefined || productData.description === null) {
+      throw new Error('Product description is missing')
+    }
+    
+    if (productData.price === undefined || productData.price === null) {
+      throw new Error('Product price is missing')
+    }
+    
+    if (productData.stock === undefined || productData.stock === null) {
+      throw new Error('Product stock is missing')
+    }
+    
+    // Validate data types and values
+    if (typeof productData.name !== 'string' || !productData.name.trim()) {
+      throw new Error('Product name is required and must be a non-empty string')
+    }
+    
+    if (typeof productData.description !== 'string' || !productData.description.trim()) {
+      throw new Error('Product description is required and must be a non-empty string')
+    }
+    
+    if (isNaN(parseFloat(productData.price)) || parseFloat(productData.price) <= 0) {
+      throw new Error('Valid product price is required (must be a positive number)')
+    }
+    
+    if (isNaN(parseInt(productData.stock)) || parseInt(productData.stock) < 0) {
+      throw new Error('Valid stock quantity is required (must be a non-negative integer)')
+    }
+    
+    // Check if product exists by ID
+    const productRef = doc(db, PRODUCTS_COLLECTION, productId);
+    const docSnap = await getDoc(productRef);
+    
+    if (!docSnap.exists()) {
+      throw new Error(`Product with ID ${productId} not found in database`);
     }
     
     // Prepare update data
@@ -197,12 +237,14 @@ export const updateProduct = async (productId, productData) => {
       updatedAt: new Date()
     };
     
-    // Only update image if it's a new one (not a URL and not empty)
-    if (productData.image && !productData.image.startsWith('http') && !productData.image.startsWith('data:image')) {
-      updateData.image = productData.image;
-    } else if (productData.image === '' && docSnap.exists()) {
-      // If image is being removed, keep the existing one
-      updateData.image = docSnap.data().image || '';
+    // Handle image update
+    if (productData.image !== undefined) {
+      if (productData.image && productData.image.trim()) {
+        updateData.image = productData.image.trim();
+      } else {
+        // Keep existing image if new one is empty
+        updateData.image = docSnap.data().image || '';
+      }
     }
     
     console.log('Updating product with data:', { productId, updateData });

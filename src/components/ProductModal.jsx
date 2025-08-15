@@ -99,6 +99,9 @@ const ProductModal = ({ product, onClose = () => {}, onAddToCart = () => {} }) =
     if (imagePath.startsWith('assets/')) {
       return `/${imagePath}`
     }
+    if (imagePath.startsWith('data:image/')) {
+      return imagePath // Return data URL as-is
+    }
     return imagePath
   }
 
@@ -133,10 +136,6 @@ const ProductModal = ({ product, onClose = () => {}, onAddToCart = () => {} }) =
               </div>
             </div>
             
-            {/* Price Tag */}
-            <div className="price-tag">
-              <span className="price-amount">${safeProduct.price.toFixed(2)}</span>
-            </div>
           </div>
           
           {/* Right Side - Product Details */}
@@ -149,75 +148,73 @@ const ProductModal = ({ product, onClose = () => {}, onAddToCart = () => {} }) =
             <p className="product-description">{safeProduct.description}</p>
             
             {/* Stock and Quantity Controls */}
-            <div className="stock-controls">
-              <div className="stock-info">
-                <span className="stock-label">Available Stock:</span>
-                <span className={`stock-amount ${safeProduct.stock < 5 ? 'low-stock' : ''}`}>
-                  {safeProduct.stock} {safeProduct.stock === 1 ? 'item' : 'items'}
+            <div className="stock-info">
+              <span className="stock-label">Available Stock:</span>
+              <span className={`stock-amount ${safeProduct.stock < 5 ? 'low-stock' : ''}`}>
+                {safeProduct.stock} {safeProduct.stock === 1 ? 'item' : 'items'}
+              </span>
+            </div>
+            
+            {/* Quantity Selector */}
+            <div className="quantity-selector">
+              <span className="quantity-label">Quantity:</span>
+              <div className="quantity-controls">
+                <button 
+                  className={`quantity-btn ${interactionState.selectedQuantity <= 1 ? 'disabled' : ''}`} 
+                  onClick={() => dispatch({ type: 'DECREMENT_QUANTITY' })}
+                  disabled={interactionState.selectedQuantity <= 1}
+                  aria-label="Decrease quantity"
+                >
+                  <FaMinus />
+                </button> 
+                <span className="quantity-display">
+                  {interactionState.selectedQuantity}
                 </span>
+                <button 
+                  className={`quantity-btn ${interactionState.selectedQuantity >= safeProduct.stock ? 'disabled' : ''}`}
+                  onClick={() => dispatch({ type: 'INCREMENT_QUANTITY' })}
+                  disabled={interactionState.selectedQuantity >= safeProduct.stock}
+                  aria-label="Increase quantity"
+                >
+                  <FaPlus />
+                </button>
               </div>
               
-              {/* Quantity Selector */}
-              <div className="quantity-selector">
-                <span className="quantity-label">Quantity:</span>
-                <div className="quantity-controls">
-                  <button 
-                    className={`quantity-btn ${interactionState.selectedQuantity <= 1 ? 'disabled' : ''}`} 
-                    onClick={() => dispatch({ type: 'DECREMENT_QUANTITY' })}
-                    disabled={interactionState.selectedQuantity <= 1}
-                    aria-label="Decrease quantity"
-                  >
-                    <FaMinus />
-                  </button>
-                  <span className="quantity-display">
-                    {interactionState.selectedQuantity}
-                  </span>
-                  <button 
-                    className={`quantity-btn ${interactionState.selectedQuantity >= safeProduct.stock ? 'disabled' : ''}`}
-                    onClick={() => dispatch({ type: 'INCREMENT_QUANTITY' })}
-                    disabled={interactionState.selectedQuantity >= safeProduct.stock}
-                    aria-label="Increase quantity"
-                  >
-                    <FaPlus />
-                  </button>
-                </div>
-                
-                {/* Stock remaining after selection */}
-                {interactionState.selectedQuantity > 0 && safeProduct.stock > 0 && (
-                  <div className="stock-remaining">
-                    {safeProduct.stock - interactionState.selectedQuantity} remaining after adding to cart
-                  </div>
-                )}
-              </div>
-              
-              {/* Add to Cart Button */}
-              <button 
-                className={`add-to-cart-btn ${safeProduct.stock === 0 ? 'disabled' : ''} ${
-                  interactionState.showSuccess ? 'success' : ''
-                }`}
-                onClick={handleAddToCart}
-                disabled={safeProduct.stock === 0}
-              >
-                {interactionState.showSuccess ? (
-                  <>
-                    <FaCheck className="btn-icon" />
-                    Added to Cart!
-                  </>
-                ) : (
-                  <>
-                    <FaShoppingCart className="btn-icon" />
-                    {safeProduct.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
-                  </>
-                )}
-              </button>
-              
-              {/* Success Message */}
-              {interactionState.showSuccess && (
-                <div className="success-message">
-                  Added {interactionState.selectedQuantity} {interactionState.selectedQuantity === 1 ? 'item' : 'items'} to your cart
+              {/* Stock remaining after selection */}
+              {interactionState.selectedQuantity > 0 && safeProduct.stock > 0 && (
+                <div className="stock-remaining">
+                  {safeProduct.stock - interactionState.selectedQuantity} remaining after adding to cart
                 </div>
               )}
             </div>
+              
+              {/* Add to Cart Button */}
+            <button 
+              className={`add-to-cart-btn ${safeProduct.stock === 0 ? 'disabled' : ''} ${
+                interactionState.showSuccess ? 'success' : ''
+              }`}
+              onClick={handleAddToCart}
+              disabled={safeProduct.stock === 0}
+            >
+              {interactionState.showSuccess ? (
+                <>
+                  <FaCheck className="btn-icon" />
+                  Added to Cart!
+                </>
+              ) : (
+                <>
+                  <FaShoppingCart className="btn-icon" />
+                  {safeProduct.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
+                </>
+              )}
+            </button>
+            
+            {/* Success Message */}
+            {interactionState.showSuccess && (
+              <div className="success-message">
+                Added {interactionState.selectedQuantity} {interactionState.selectedQuantity === 1 ? 'item' : 'items'} to your cart
+              </div>
+            )}
           </div>
         </div>
       </div>
